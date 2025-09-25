@@ -13,9 +13,9 @@ import ExistingTemplates from '@/pages/templates/ExistingTemplates';
 import TemplateAnalytics from '@/pages/templates/TemplateAnalytics';
 import AllPlayers from '@/pages/players/AllPlayers';
 import PlayerAnalytics from '@/pages/players/PlayerAnalytics';
+import AthleteProfile from '@/pages/players/AthleteProfile';
 import PlaceholderPage from '@/components/PlaceholderPage';
 import SelectedCandidates from '@/pages/talent/SelectedCandidates';
-import SportTalent from '@/pages/talent/SportTalent';
 import RecruitmentPipeline from '@/pages/talent/RecruitmentPipeline';
 import PendingReviews from '@/pages/videos/PendingReviews';
 import CompletedReviews from '@/pages/videos/CompletedReviews';
@@ -47,6 +47,7 @@ const DashboardLayout: React.FC = () => {
     // Player Profiles
     if (activeSection === 'players') {
       if (activeSubItem === 'all-players') return <AllPlayers />;
+      if (activeSubItem === 'athlete-profile') return <AthleteProfile athleteId={undefined} />;
       if (activeSubItem === 'player-analytics') return <PlayerAnalytics />;
       return <AllPlayers />; // Default
     }
@@ -54,7 +55,6 @@ const DashboardLayout: React.FC = () => {
     // Talent Pool
     if (activeSection === 'talent') {
       if (activeSubItem === 'selected-candidates') return <SelectedCandidates />;
-      if (activeSubItem === 'sport-talent') return <SportTalent />;
       if (activeSubItem === 'recruitment') return <RecruitmentPipeline />;
       return <SelectedCandidates />;
     }

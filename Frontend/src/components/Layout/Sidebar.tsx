@@ -51,7 +51,6 @@ const navigationItems = [
     icon: Trophy,
     subItems: [
       { id: 'selected-candidates', label: 'Selected Candidates' },
-      { id: 'sport-talent', label: 'Sport-wise Talent' },
       { id: 'recruitment', label: 'Recruitment Pipeline' }
     ]
   },

@@ -6,26 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from '@/components/ui/sheet';
-
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  CartesianGrid,
-} from 'recharts';
+// ...existing code... (removed sheet & inline charts - profile moved to dedicated page)
 
 interface Player {
   id: string;
@@ -50,99 +31,20 @@ interface VideoSample {
   thumbnail?: string;
 }
 
-const players: Player[] = [
-  {
-    id: 'ATH001',
-    name: 'Priya Sharma',
-    age: 19,
-    location: 'Mumbai, Maharashtra',
-    primarySport: 'Athletics',
-    joinDate: '2024-08-15',
-    totalVideos: 23,
-    averageScore: 8.7,
-    personalBests: { verticalJump: '45cm', shuttleRun: '12.3s', sitUps: '52 reps' },
-    inTalentPool: true,
-    lastActive: '2 hours ago'
-  },
-  {
-    id: 'BBL002',
-    name: 'Arjun Singh',
-    age: 20,
-    location: 'Chandigarh, Punjab',
-    primarySport: 'Basketball',
-    joinDate: '2024-07-22',
-    totalVideos: 31,
-    averageScore: 9.1,
-    personalBests: { verticalJump: '58cm', shuttleRun: '11.8s', pushUps: '67 reps' },
-    inTalentPool: true,
-    lastActive: '1 hour ago'
-  },
-  {
-    id: 'SWM003',
-    name: 'Meera Patel',
-    age: 18,
-    location: 'Ahmedabad, Gujarat',
-    primarySport: 'Swimming',
-    joinDate: '2024-09-10',
-    totalVideos: 18,
-    averageScore: 8.9,
-    personalBests: { freestyle50m: '26.8s', butterfly100m: '1:02.3', endurance: '15min' },
-    inTalentPool: false,
-    lastActive: '30 minutes ago'
-  },
-  {
-    id: 'FTB004',
-    name: 'Rohit Kumar',
-    age: 21,
-    location: 'Kochi, Kerala',
-    primarySport: 'Football',
-    joinDate: '2024-06-18',
-    totalVideos: 27,
-    averageScore: 8.3,
-    personalBests: { sprint20m: '3.2s', ballControl: '95%', endurance: '18min' },
-    inTalentPool: false,
-    lastActive: '5 hours ago'
-  },
-  {
-    id: 'BDM005',
-    name: 'Sneha Rao',
-    age: 19,
-    location: 'Bangalore, Karnataka',
-    primarySport: 'Badminton',
-    joinDate: '2024-08-03',
-    totalVideos: 22,
-    averageScore: 8.5,
-    personalBests: { smashSpeed: '285kmh', agility: '9.2s', precision: '92%' },
-    inTalentPool: true,
-    lastActive: '3 hours ago'
-  },
-  {
-    id: 'WRS006',
-    name: 'Vikram Joshi',
-    age: 22,
-    location: 'Gurgaon, Haryana',
-    primarySport: 'Wrestling',
-    joinDate: '2024-05-12',
-    totalVideos: 35,
-    averageScore: 7.9,
-    personalBests: { strength: '180kg', technique: '8.7/10', flexibility: '85%' },
-    inTalentPool: false,
-    lastActive: '1 day ago'
-  }
-];
+import { players as playersSample, Player as SamplePlayer } from '@/lib/samplePlayers';
+import { useNavigation } from '@/hooks/useNavigation';
 
 const AllPlayers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('all');
   const [selectedState, setSelectedState] = useState<string>('all');
   const [showTalentPoolOnly, setShowTalentPoolOnly] = useState(false);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const { setActiveSection, setSelectedPlayerId } = useNavigation();
 
   const sports = ['all', 'Athletics', 'Basketball', 'Swimming', 'Football', 'Badminton', 'Wrestling'];
   const states = ['all', 'Maharashtra', 'Punjab', 'Gujarat', 'Kerala', 'Karnataka', 'Haryana'];
 
-  const filteredPlayers = players.filter(player => {
+  const filteredPlayers = playersSample.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          player.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSport = selectedSport === 'all' || player.primarySport === selectedSport;
@@ -151,6 +53,7 @@ const AllPlayers: React.FC = () => {
     
     return matchesSearch && matchesSport && matchesState && matchesTalentPool;
   });
+
 
   const getScoreColor = (score: number) => {
     if (score >= 9.0) return 'text-success';
@@ -234,8 +137,9 @@ const AllPlayers: React.FC = () => {
             key={player.id}
             className="sai-card hover:shadow-lg transition-all duration-300 cursor-pointer"
             onClick={() => {
-              setSelectedPlayer(player);
-              setSheetOpen(true);
+              // navigate to athlete profile
+              setSelectedPlayerId(player.id);
+              setActiveSection('players', 'athlete-profile');
             }}
           >
             <CardContent className="p-6">
@@ -306,80 +210,6 @@ const AllPlayers: React.FC = () => {
           <p className="text-muted-foreground">No players found matching your criteria.</p>
         </Card>
       )}
-
-      {/* Player Detail Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setSelectedPlayer(null); setSheetOpen(open); }}>
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle>{selectedPlayer ? selectedPlayer.name : 'Player Details'}</SheetTitle>
-            <SheetDescription>
-              Detailed analytics and submitted videos for the selected player.
-            </SheetDescription>
-          </SheetHeader>
-
-          {selectedPlayer ? (
-            <div className="space-y-6 p-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarFallback>{selectedPlayer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedPlayer.name}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedPlayer.primarySport} • {selectedPlayer.location}</p>
-                  <p className="text-sm text-muted-foreground">Avg Score: <span className={`font-semibold ${getScoreColor(selectedPlayer.averageScore)}`}>{selectedPlayer.averageScore}</span></p>
-                </div>
-              </div>
-
-              {/* small analytics chart: score over time */}
-              <div className="sai-card p-4">
-                <h4 className="font-semibold mb-2">Score over recent submissions</h4>
-                <div style={{ width: '100%', height: 160 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={generateSampleVideos(selectedPlayer).map(v => ({ date: v.date, score: v.score }))}>
-                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                      <XAxis dataKey="date" />
-                      <YAxis domain={[5, 10]} />
-                      <ReTooltip />
-                      <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Videos list */}
-              <div className="space-y-2">
-                <h4 className="font-semibold">Submitted Videos</h4>
-                {generateSampleVideos(selectedPlayer).map(video => (
-                  <Card key={video.id} className="flex items-center gap-4 p-3">
-                    <img src={video.thumbnail} alt="thumb" className="w-20 h-12 object-cover rounded" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{video.title}</p>
-                          <p className="text-xs text-muted-foreground">{video.date} • {video.duration}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{video.score}</p>
-                          <p className="text-xs text-muted-foreground">Score</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setSheetOpen(false)}>Close</Button>
-                <Button className="btn-primary">View Full Analytics</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4">Select a player to view details</div>
-          )}
-
-          <SheetClose />
-        </SheetContent>
-      </Sheet>
     </div>
   );
 };
