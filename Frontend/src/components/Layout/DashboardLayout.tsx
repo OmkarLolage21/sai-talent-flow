@@ -12,9 +12,14 @@ import CreateTemplate from '@/pages/templates/CreateTemplate';
 import ExistingTemplates from '@/pages/templates/ExistingTemplates';
 import TemplateAnalytics from '@/pages/templates/TemplateAnalytics';
 import AllPlayers from '@/pages/players/AllPlayers';
-import SearchPlayers from '@/pages/players/SearchPlayers';
 import PlayerAnalytics from '@/pages/players/PlayerAnalytics';
 import PlaceholderPage from '@/components/PlaceholderPage';
+import SelectedCandidates from '@/pages/talent/SelectedCandidates';
+import SportTalent from '@/pages/talent/SportTalent';
+import RecruitmentPipeline from '@/pages/talent/RecruitmentPipeline';
+import PendingReviews from '@/pages/videos/PendingReviews';
+import CompletedReviews from '@/pages/videos/CompletedReviews';
+import FlaggedVideos from '@/pages/videos/FlaggedVideos';
 
 const DashboardLayout: React.FC = () => {
   const { activeSection, activeSubItem } = useNavigation();
@@ -42,25 +47,24 @@ const DashboardLayout: React.FC = () => {
     // Player Profiles
     if (activeSection === 'players') {
       if (activeSubItem === 'all-players') return <AllPlayers />;
-      if (activeSubItem === 'search-players') return <SearchPlayers />;
       if (activeSubItem === 'player-analytics') return <PlayerAnalytics />;
       return <AllPlayers />; // Default
     }
     
     // Talent Pool
     if (activeSection === 'talent') {
-      if (activeSubItem === 'selected-candidates') return <PlaceholderPage title="Selected Candidates" />;
-      if (activeSubItem === 'sport-talent') return <PlaceholderPage title="Sport-wise Talent" />;
-      if (activeSubItem === 'recruitment') return <PlaceholderPage title="Recruitment Pipeline" />;
-      return <PlaceholderPage title="Talent Pool" />;
+      if (activeSubItem === 'selected-candidates') return <SelectedCandidates />;
+      if (activeSubItem === 'sport-talent') return <SportTalent />;
+      if (activeSubItem === 'recruitment') return <RecruitmentPipeline />;
+      return <SelectedCandidates />;
     }
     
     // Video Reviews
     if (activeSection === 'videos') {
-      if (activeSubItem === 'pending-reviews') return <PlaceholderPage title="Pending Reviews" />;
-      if (activeSubItem === 'completed-reviews') return <PlaceholderPage title="Completed Reviews" />;
-      if (activeSubItem === 'flagged-videos') return <PlaceholderPage title="Flagged Videos" />;
-      return <PlaceholderPage title="Video Reviews" />;
+      if (activeSubItem === 'pending-reviews') return <PendingReviews />;
+      if (activeSubItem === 'completed-reviews') return <CompletedReviews />;
+      if (activeSubItem === 'flagged-videos') return <FlaggedVideos />;
+      return <PendingReviews />;
     }
     
     // Settings

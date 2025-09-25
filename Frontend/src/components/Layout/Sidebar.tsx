@@ -36,13 +36,12 @@ const navigationItems = [
       { id: 'template-analytics', label: 'Template Analytics' }
     ]
   },
-  { 
-    id: 'players', 
-    label: 'Player Profiles', 
+  {
+    id: 'players',
+    label: 'Players',
     icon: Users,
     subItems: [
-      { id: 'all-players', label: 'View All Players' },
-      { id: 'search-players', label: 'Search Players' },
+      { id: 'all-players', label: 'Manage Players' },
       { id: 'player-analytics', label: 'Player Analytics' }
     ]
   },
@@ -168,7 +167,7 @@ export const Sidebar: React.FC = () => {
                 filteredPlayers.map((player, index) => (
                   <button
                     key={index}
-                    onClick={() => setActiveSection('players', 'search-players')}
+                    onClick={() => setActiveSection('players', 'all-players')}
                     className="w-full text-left p-2 text-sm rounded-md hover:bg-surface-hover transition-colors"
                   >
                     {player}

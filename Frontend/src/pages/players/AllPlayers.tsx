@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Filter, MapPin, Calendar, Trophy, Star, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from '@/components/ui/sheet';
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip as ReTooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+} from 'recharts';
 
 interface Player {
   id: string;
@@ -19,6 +39,15 @@ interface Player {
   personalBests: Record<string, string>;
   inTalentPool: boolean;
   lastActive: string;
+}
+
+interface VideoSample {
+  id: string;
+  title: string;
+  date: string;
+  score: number;
+  duration: string;
+  thumbnail?: string;
 }
 
 const players: Player[] = [
@@ -107,6 +136,8 @@ const AllPlayers: React.FC = () => {
   const [selectedSport, setSelectedSport] = useState<string>('all');
   const [selectedState, setSelectedState] = useState<string>('all');
   const [showTalentPoolOnly, setShowTalentPoolOnly] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const sports = ['all', 'Athletics', 'Basketball', 'Swimming', 'Football', 'Badminton', 'Wrestling'];
   const states = ['all', 'Maharashtra', 'Punjab', 'Gujarat', 'Kerala', 'Karnataka', 'Haryana'];
@@ -199,7 +230,14 @@ const AllPlayers: React.FC = () => {
       {/* Players Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredPlayers.map((player) => (
-          <Card key={player.id} className="sai-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+          <Card
+            key={player.id}
+            className="sai-card hover:shadow-lg transition-all duration-300 cursor-pointer"
+            onClick={() => {
+              setSelectedPlayer(player);
+              setSheetOpen(true);
+            }}
+          >
             <CardContent className="p-6">
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
@@ -268,8 +306,102 @@ const AllPlayers: React.FC = () => {
           <p className="text-muted-foreground">No players found matching your criteria.</p>
         </Card>
       )}
+
+      {/* Player Detail Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setSelectedPlayer(null); setSheetOpen(open); }}>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle>{selectedPlayer ? selectedPlayer.name : 'Player Details'}</SheetTitle>
+            <SheetDescription>
+              Detailed analytics and submitted videos for the selected player.
+            </SheetDescription>
+          </SheetHeader>
+
+          {selectedPlayer ? (
+            <div className="space-y-6 p-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="w-16 h-16">
+                  <AvatarFallback>{selectedPlayer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedPlayer.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedPlayer.primarySport} • {selectedPlayer.location}</p>
+                  <p className="text-sm text-muted-foreground">Avg Score: <span className={`font-semibold ${getScoreColor(selectedPlayer.averageScore)}`}>{selectedPlayer.averageScore}</span></p>
+                </div>
+              </div>
+
+              {/* small analytics chart: score over time */}
+              <div className="sai-card p-4">
+                <h4 className="font-semibold mb-2">Score over recent submissions</h4>
+                <div style={{ width: '100%', height: 160 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={generateSampleVideos(selectedPlayer).map(v => ({ date: v.date, score: v.score }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="date" />
+                      <YAxis domain={[5, 10]} />
+                      <ReTooltip />
+                      <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Videos list */}
+              <div className="space-y-2">
+                <h4 className="font-semibold">Submitted Videos</h4>
+                {generateSampleVideos(selectedPlayer).map(video => (
+                  <Card key={video.id} className="flex items-center gap-4 p-3">
+                    <img src={video.thumbnail} alt="thumb" className="w-20 h-12 object-cover rounded" />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{video.title}</p>
+                          <p className="text-xs text-muted-foreground">{video.date} • {video.duration}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{video.score}</p>
+                          <p className="text-xs text-muted-foreground">Score</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setSheetOpen(false)}>Close</Button>
+                <Button className="btn-primary">View Full Analytics</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">Select a player to view details</div>
+          )}
+
+          <SheetClose />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
+
+// helper to generate sample videos for the player detail view
+function generateSampleVideos(player: Player): VideoSample[] {
+  const base = player.averageScore || 8.0;
+  const videos: VideoSample[] = [];
+  const now = Date.now();
+  for (let i = 0; i < Math.min(8, Math.max(4, Math.round(player.totalVideos / 4))); i++) {
+    const score = Math.max(5, Math.min(10, +(base + (Math.random() - 0.4) * 1.2).toFixed(1)));
+    const date = new Date(now - (i * 1000 * 60 * 60 * 24 * (3 + Math.round(Math.random() * 4))));
+    videos.push({
+      id: `${player.id}-V${i + 1}`,
+      title: `${player.primarySport} - Drill ${i + 1}`,
+      date: date.toISOString().split('T')[0],
+      score,
+      duration: `${20 + Math.round(Math.random() * 80)}s`,
+      thumbnail: '/placeholder.svg',
+    });
+  }
+  return videos.sort((a, b) => (a.date > b.date ? 1 : -1));
+}
 
 export default AllPlayers;

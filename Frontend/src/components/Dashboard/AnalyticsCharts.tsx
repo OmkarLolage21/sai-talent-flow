@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { TrendingUp, BarChart3, PieChart as PieChartIcon, MapPin } from 'lucide-react';
 
 const submissionData = [
@@ -118,10 +118,12 @@ export const AnalyticsCharts: React.FC = () => {
           <h3 className="text-lg font-semibold">Exercise Performance Averages</h3>
         </div>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={exercisePerformance} layout="horizontal">
+          {/* Use vertical layout so exercises are listed on the Y axis and bars extend horizontally */}
+          <BarChart data={exercisePerformance} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
             <XAxis type="number" domain={[0, 10]} />
-            <YAxis dataKey="exercise" type="category" width={80} />
+            {/* wider Y axis so longer exercise names fit */}
+            <YAxis dataKey="exercise" type="category" width={140} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--card))', 
@@ -132,7 +134,10 @@ export const AnalyticsCharts: React.FC = () => {
               dataKey="avgScore" 
               fill="hsl(var(--secondary))"
               radius={[0, 4, 4, 0]}
-            />
+            >
+              {/* show the numeric average on the end of each bar */}
+              <LabelList dataKey="avgScore" position="right" formatter={(val: number) => Number(val).toFixed(1)} />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
