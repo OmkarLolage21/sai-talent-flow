@@ -12,9 +12,10 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useNavigation } from '@/hooks/useNavigation';
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, active: true },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { 
     id: 'exercises', 
     label: 'Exercise Management', 
@@ -78,20 +79,23 @@ const navigationItems = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const [expandedItems, setExpandedItems] = useState<string[]>(['dashboard']);
+  const { activeSection, activeSubItem, expandedItems, setActiveSection, toggleExpanded } = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev => 
-      prev.includes(itemId) 
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
+  const handleItemClick = (itemId: string, subItemId?: string) => {
+    if (subItemId) {
+      setActiveSection(itemId, subItemId);
+    } else {
+      setActiveSection(itemId);
+      if (navigationItems.find(item => item.id === itemId)?.subItems) {
+        toggleExpanded(itemId);
+      }
+    }
   };
 
   const filteredPlayers = [
     'Priya Sharma - Athletics',
-    'Arjun Singh - Basketball',
+    'Arjun Singh - Basketball', 
     'Meera Patel - Swimming',
     'Rohit Kumar - Football',
     'Sneha Rao - Badminton'
@@ -106,9 +110,9 @@ export const Sidebar: React.FC = () => {
           {navigationItems.map((item) => (
             <div key={item.id}>
               <button
-                onClick={() => item.subItems && toggleExpanded(item.id)}
+                onClick={() => handleItemClick(item.id)}
                 className={`sidebar-item w-full text-left ${
-                  item.active ? 'active' : ''
+                  activeSection === item.id ? 'active' : ''
                 }`}
               >
                 <item.icon className="w-5 h-5 mr-3" />
@@ -129,7 +133,10 @@ export const Sidebar: React.FC = () => {
                   {item.subItems.map((subItem) => (
                     <button
                       key={subItem.id}
-                      className="sidebar-item w-full text-left text-sm py-2"
+                      onClick={() => handleItemClick(item.id, subItem.id)}
+                      className={`sidebar-item w-full text-left text-sm py-2 ${
+                        activeSubItem === subItem.id ? 'active' : ''
+                      }`}
                     >
                       {subItem.label}
                     </button>
@@ -161,6 +168,7 @@ export const Sidebar: React.FC = () => {
                 filteredPlayers.map((player, index) => (
                   <button
                     key={index}
+                    onClick={() => setActiveSection('players', 'search-players')}
                     className="w-full text-left p-2 text-sm rounded-md hover:bg-surface-hover transition-colors"
                   >
                     {player}
