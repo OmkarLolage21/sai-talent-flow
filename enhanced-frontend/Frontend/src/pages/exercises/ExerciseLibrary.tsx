@@ -2,110 +2,30 @@ import React, { useState } from 'react';
 import { Search, Filter, Play, Edit, Trash2, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+// removed comingSoon usage; fully functional dialogs implemented
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-interface Exercise {
-  id: string;
-  name: string;
-  sport: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  description: string;
-  metrics: string[];
-  submissions: number;
-  avgScore: number;
-  createdBy: string;
-  createdAt: string;
-  thumbnail: string;
-}
-
-const exercises: Exercise[] = [
-  {
-    id: '1',
-    name: 'Vertical Jump Test',
-    sport: 'Athletics',
-    difficulty: 'beginner',
-    description: 'Measures explosive leg power and vertical leap ability',
-    metrics: ['Power', 'Technique', 'Height'],
-    submissions: 245,
-    avgScore: 7.8,
-    createdBy: 'Dr. Singh',
-    createdAt: '2024-01-15',
-    thumbnail: '/api/placeholder/300/200'
-  },
-  {
-    id: '2', 
-    name: 'Shuttle Run 20m',
-    sport: 'Basketball',
-    difficulty: 'intermediate',
-    description: 'Tests agility, speed, and change of direction',
-    metrics: ['Speed', 'Agility', 'Endurance'],
-    submissions: 189,
-    avgScore: 8.2,
-    createdBy: 'Coach Patel',
-    createdAt: '2024-01-10',
-    thumbnail: '/api/placeholder/300/200'
-  },
-  {
-    id: '3',
-    name: 'Push-up Endurance',
-    sport: 'General',
-    difficulty: 'beginner',
-    description: 'Measures upper body strength and endurance',
-    metrics: ['Strength', 'Endurance', 'Form'],
-    submissions: 312,
-    avgScore: 7.5,
-    createdBy: 'Trainer Kumar',
-    createdAt: '2024-01-08',
-    thumbnail: '/api/placeholder/300/200'
-  },
-  {
-    id: '4',
-    name: 'Swimming Technique',
-    sport: 'Swimming',
-    difficulty: 'advanced',
-    description: 'Evaluates stroke technique and efficiency',
-    metrics: ['Technique', 'Speed', 'Efficiency'],
-    submissions: 98,
-    avgScore: 8.7,
-    createdBy: 'Coach Sharma',
-    createdAt: '2024-01-05',
-    thumbnail: '/api/placeholder/300/200'
-  },
-  {
-    id: '5',
-    name: 'Football Dribbling',
-    sport: 'Football',
-    difficulty: 'intermediate',
-    description: 'Tests ball control and dribbling skills',
-    metrics: ['Control', 'Speed', 'Accuracy'],
-    submissions: 167,
-    avgScore: 7.9,
-    createdBy: 'Coach Rodriguez',
-    createdAt: '2024-01-03',
-    thumbnail: '/api/placeholder/300/200'
-  },
-  {
-    id: '6',
-    name: 'Boxing Combination',
-    sport: 'Boxing',
-    difficulty: 'advanced',
-    description: 'Evaluates punch combinations and technique',
-    metrics: ['Technique', 'Power', 'Speed'],
-    submissions: 78,
-    avgScore: 8.4,
-    createdBy: 'Coach Johnson',
-    createdAt: '2024-01-01',
-    thumbnail: '/api/placeholder/300/200'
-  }
-];
+import { useAppStore } from '@/store/appStore';
+import ExerciseVideoPreview from '@/components/ExerciseVideoPreview';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 const ExerciseLibrary: React.FC = () => {
+  const { exercises, updateExercise, deleteExercise, pushNotification } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [viewId, setViewId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const editing = exercises.find(e => e.id === editId) || null;
+  const viewing = exercises.find(e => e.id === viewId) || null;
 
   const sports = ['all', 'Athletics', 'Basketball', 'Football', 'Swimming', 'Boxing', 'General'];
   const difficulties = ['all', 'beginner', 'intermediate', 'advanced'];
@@ -135,9 +55,9 @@ const ExerciseLibrary: React.FC = () => {
           <h1 className="text-3xl font-bold">Exercise Library</h1>
           <p className="text-muted-foreground">Manage and view all available exercises</p>
         </div>
-        <Button className="btn-primary">
+        <Button className="btn-primary" onClick={() => setViewId(exercises[0]?.id || null)}>
           <Play className="w-4 h-4 mr-2" />
-          Preview Mode
+          Quick Preview
         </Button>
       </div>
 
@@ -183,7 +103,7 @@ const ExerciseLibrary: React.FC = () => {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Filters', description: 'All filters are already visible.' })}>
             <Filter className="w-4 h-4 mr-2" />
             More Filters
           </Button>
@@ -195,8 +115,8 @@ const ExerciseLibrary: React.FC = () => {
         {filteredExercises.map((exercise) => (
           <Card key={exercise.id} className="sai-card hover:shadow-lg transition-all duration-300">
             <div className="relative">
-              <div className="aspect-video bg-muted rounded-t-lg flex items-center justify-center">
-                <Play className="w-12 h-12 text-muted-foreground" />
+              <div className="aspect-video bg-black rounded-t-lg overflow-hidden">
+                <ExerciseVideoPreview src={exercise.videoUrl} poster={exercise.posterUrl} />
               </div>
               <Badge className={`absolute top-2 right-2 ${getDifficultyColor(exercise.difficulty)}`}>
                 {exercise.difficulty}
@@ -245,13 +165,13 @@ const ExerciseLibrary: React.FC = () => {
                   </div>
                   
                   <div className="flex gap-1">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setViewId(exercise.id)}>
                       <Eye className="w-3 h-3" />
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setEditId(exercise.id)}>
                       <Edit className="w-3 h-3" />
                     </Button>
-                    <Button variant="outline" size="sm" className="text-error hover:text-error">
+                    <Button variant="outline" size="sm" className="text-error hover:text-error" onClick={() => setDeleteId(exercise.id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
@@ -267,6 +187,56 @@ const ExerciseLibrary: React.FC = () => {
           <p className="text-muted-foreground">No exercises found matching your criteria.</p>
         </Card>
       )}
+
+      {/* View Dialog */}
+      <Dialog open={!!viewId} onOpenChange={(o)=> !o && setViewId(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader><DialogTitle>Exercise Detail</DialogTitle></DialogHeader>
+          {viewing && (
+            <div className="space-y-4">
+              <video controls className="w-full rounded" src={viewing.videoUrl} poster={viewing.posterUrl} />
+              <h3 className="text-xl font-semibold">{viewing.name}</h3>
+              <p className="text-sm text-muted-foreground">{viewing.description}</p>
+              <div className="flex flex-wrap gap-2">
+                {viewing.metrics.map(m => <Badge key={m} variant="secondary" className="text-xs">{m}</Badge>)}
+              </div>
+              <p className="text-xs text-muted-foreground">Created by {viewing.createdBy} on {viewing.createdAt}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={()=> setViewId(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editId} onOpenChange={(o)=> !o && setEditId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Edit Exercise</DialogTitle></DialogHeader>
+          {editing && (
+            <form className="space-y-4" onSubmit={e=> { e.preventDefault(); const form = new FormData(e.currentTarget); updateExercise(editing.id,{ name: form.get('name') as string, description: form.get('description') as string }); pushNotification(`Edited exercise '${form.get('name')}'`,'exercise'); toast({ title: 'Exercise Updated'}); setEditId(null); }}>
+              <Input name="name" defaultValue={editing.name} />
+              <Textarea name="description" defaultValue={editing.description} />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={()=> setEditId(null)}>Cancel</Button>
+                <Button type="submit">Save</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(o)=> !o && setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Delete Exercise</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={()=> setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={()=> { if(!deleteId) return; deleteExercise(deleteId); pushNotification('Deleted exercise','exercise'); toast({ title: 'Exercise Deleted'}); setDeleteId(null); }}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

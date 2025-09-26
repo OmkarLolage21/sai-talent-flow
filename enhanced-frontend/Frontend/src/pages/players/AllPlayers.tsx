@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAppStore } from '@/store/appStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 // ...existing code... (removed sheet & inline charts - profile moved to dedicated page)
 
 interface Player {
@@ -31,20 +34,21 @@ interface VideoSample {
   thumbnail?: string;
 }
 
-import { players as playersSample, Player as SamplePlayer } from '@/lib/samplePlayers';
 import { useNavigation } from '@/hooks/useNavigation';
 
 const AllPlayers: React.FC = () => {
+  const { players, addPlayer, pushNotification } = useAppStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSport, setSelectedSport] = useState<string>('all');
   const [selectedState, setSelectedState] = useState<string>('all');
   const [showTalentPoolOnly, setShowTalentPoolOnly] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const { setActiveSection, setSelectedPlayerId } = useNavigation();
 
   const sports = ['all', 'Athletics', 'Basketball', 'Swimming', 'Football', 'Badminton', 'Wrestling'];
   const states = ['all', 'Maharashtra', 'Punjab', 'Gujarat', 'Kerala', 'Karnataka', 'Haryana'];
 
-  const filteredPlayers = playersSample.filter(player => {
+  const filteredPlayers = players.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          player.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSport = selectedSport === 'all' || player.primarySport === selectedSport;
@@ -69,10 +73,15 @@ const AllPlayers: React.FC = () => {
           <p className="text-muted-foreground">View and manage all registered athletes</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => {
+            const csv = 'id,name,age,location,sport,avgScore\n' + players.map(p=>`${p.id},${p.name},${p.age},${p.location},${p.primarySport},${p.averageScore}`).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'players.csv'; a.click();
+            pushNotification('Exported player list','player');
+          }}>
             Export List
           </Button>
-          <Button className="btn-primary">
+          <Button className="btn-primary" onClick={() => setAddOpen(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Add Player
           </Button>
@@ -132,7 +141,7 @@ const AllPlayers: React.FC = () => {
 
       {/* Players Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredPlayers.map((player) => (
+  {filteredPlayers.map((player) => (
           <Card
             key={player.id}
             className="sai-card hover:shadow-lg transition-all duration-300 cursor-pointer"
@@ -210,28 +219,24 @@ const AllPlayers: React.FC = () => {
           <p className="text-muted-foreground">No players found matching your criteria.</p>
         </Card>
       )}
+      <Dialog open={addOpen} onOpenChange={(o)=> !o && setAddOpen(false)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Player</DialogTitle></DialogHeader>
+          <form className="space-y-3" onSubmit={e=> { e.preventDefault(); const f = new FormData(e.currentTarget); addPlayer({ name: f.get('name') as string, age: +(f.get('age') as string), location: f.get('location') as string, primarySport: f.get('sport') as string, inTalentPool: f.get('talent') === 'on' }); pushNotification('Player added','player'); setAddOpen(false); }}>
+            <Input name="name" placeholder="Name" required />
+            <Input name="age" type="number" placeholder="Age" required />
+            <Input name="location" placeholder="Location" required />
+            <Input name="sport" placeholder="Primary Sport" required />
+            <label className="flex items-center gap-2 text-sm"><input name="talent" type="checkbox" /> Talent Pool</label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={()=> setAddOpen(false)}>Cancel</Button>
+              <Button type="submit">Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
-
-// helper to generate sample videos for the player detail view
-function generateSampleVideos(player: Player): VideoSample[] {
-  const base = player.averageScore || 8.0;
-  const videos: VideoSample[] = [];
-  const now = Date.now();
-  for (let i = 0; i < Math.min(8, Math.max(4, Math.round(player.totalVideos / 4))); i++) {
-    const score = Math.max(5, Math.min(10, +(base + (Math.random() - 0.4) * 1.2).toFixed(1)));
-    const date = new Date(now - (i * 1000 * 60 * 60 * 24 * (3 + Math.round(Math.random() * 4))));
-    videos.push({
-      id: `${player.id}-V${i + 1}`,
-      title: `${player.primarySport} - Drill ${i + 1}`,
-      date: date.toISOString().split('T')[0],
-      score,
-      duration: `${20 + Math.round(Math.random() * 80)}s`,
-      thumbnail: '/placeholder.svg',
-    });
-  }
-  return videos.sort((a, b) => (a.date > b.date ? 1 : -1));
-}
 
 export default AllPlayers;

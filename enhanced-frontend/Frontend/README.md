@@ -60,6 +60,19 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## UX Consistency / No Dead Buttons
+
+All interactive buttons now either perform their intended navigation/action or provide immediate user feedback via a lightweight toast using the `comingSoon` helper (see `src/lib/comingSoon.ts`). This ensures there are no "dead" or silent UI elements.
+
+Pattern:
+
+```ts
+import { comingSoon } from "@/lib/comingSoon";
+<Button onClick={() => comingSoon("Export Players")}>Export</Button>;
+```
+
+Non-implemented feature buttons are intentionally left visually identical to preserve UI layout, while providing clear feedback. Replace these handlers with real logic as features are built.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/4943adc0-1cb5-4c57-9602-84e74c0aaddb) and click on Share -> Publish.
