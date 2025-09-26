@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Play, Plus, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,10 @@ const CreateExercise: React.FC = () => {
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const availableMetrics = [
     'Speed', 'Accuracy', 'Form', 'Endurance', 'Strength', 
@@ -48,6 +52,13 @@ const CreateExercise: React.FC = () => {
     if (files[0] && files[0].type.startsWith('video/')) {
       setVideoFile(files[0]);
     }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const handleBrowseClick = () => fileInputRef.current && fileInputRef.current.click();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (f && f.type.startsWith('video/')) setVideoFile(f);
   };
 
   const addMetric = (metric: string) => {
@@ -69,6 +80,76 @@ const CreateExercise: React.FC = () => {
   const handleSubmit = () => {
     console.log('Creating exercise:', form, videoFile);
     // Here would be the API call to create the exercise
+  };
+
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+
+  useEffect(() => {
+    // fetch templates from backend to allow selecting existing template for analysis
+    const fetchTemplates = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/templates`);
+        if (!res.ok) return;
+        const data = await res.json();
+        // backend returns { templates: { id: templateObj, ... } }
+        const tpl = data.templates || {};
+        const items: Array<{ id: string; name: string; description?: string }> = [];
+        if (Array.isArray(tpl)) {
+          // in case backend returns list
+          tpl.forEach((t: any) => items.push({ id: t.id || '', name: t.name || 'Template', description: t.description }));
+        } else {
+          Object.entries(tpl).forEach(([id, t]: any) => items.push({ id, name: (t as any).name || id, description: (t as any).description }));
+        }
+        // fallback sample templates if none returned
+        const sampleTemplates = [
+          { id: 'TEMPLATE-001', name: 'Standard Squat', description: 'Squat reference template' },
+          { id: 'TEMPLATE-002', name: 'Push-Up', description: 'Push-up reference' },
+          { id: 'TEMPLATE-003', name: 'Vertical Jump', description: 'Jump test' }
+        ];
+        setTemplates(items.length ? items : sampleTemplates);
+      } catch (e) {
+        console.warn('Could not fetch templates', e);
+        // set fallback sample templates
+        setTemplates([
+          { id: 'TEMPLATE-001', name: 'Standard Squat', description: 'Squat reference template' },
+          { id: 'TEMPLATE-002', name: 'Push-Up', description: 'Push-up reference' },
+          { id: 'TEMPLATE-003', name: 'Vertical Jump', description: 'Jump test' }
+        ]);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  const analyzeVideo = async () => {
+    if (!videoFile) {
+      alert('Please add a reference video first');
+      return;
+    }
+    if (!selectedTemplateId) {
+      alert('Please select a template to analyze against');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('video', videoFile);
+
+    setAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/analyze/video/${selectedTemplateId}`, {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.detail || 'Analysis failed');
+      setAnalysisResult(json);
+    } catch (err: any) {
+      console.error('Analysis error', err);
+      alert('Analysis error: ' + (err.message || err));
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -169,7 +250,23 @@ const CreateExercise: React.FC = () => {
               <CardTitle>Reference Video</CardTitle>
             </CardHeader>
             <CardContent>
-              <div
+                <div>
+                  <input ref={fileInputRef} type="file" className="hidden" accept="video/*" onChange={handleFileChange} />
+                  <div className="mb-4">
+                    <label className="text-sm font-medium block mb-2">Select Template to Analyze Against</label>
+                    <Select value={selectedTemplateId} onValueChange={(v) => setSelectedTemplateId(v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={templates.length ? 'Choose template' : 'No templates available'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {templates.map(t => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+              
+                  <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   isDragOver ? 'border-primary bg-primary/5' : 'border-card-border'
                 }`}
@@ -203,12 +300,44 @@ const CreateExercise: React.FC = () => {
                         Or click to browse (MP4, MOV, AVI)
                       </p>
                     </div>
-                    <Button variant="outline">Browse Files</Button>
+                      <Button variant="outline" onClick={handleBrowseClick}>Browse Files</Button>
                   </div>
                 )}
               </div>
+              
+                <div className="mt-4 flex items-center gap-2">
+                  <Button onClick={analyzeVideo} disabled={analyzing || !videoFile || !selectedTemplateId}>
+                    {analyzing ? 'Analyzing...' : 'Analyze Video'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => { setAnalysisResult(null); setVideoFile(null); }}>Clear</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
+
+            {analysisResult && (
+              <Card className="sai-card mt-4">
+                <CardHeader>
+                  <CardTitle>Analysis Result</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div><strong>Session:</strong> {analysisResult.session_id}</div>
+                    <div><strong>Overall similarity:</strong> {analysisResult.overall_similarity?.toFixed(1)}%</div>
+                    <div><strong>Total frames:</strong> {analysisResult.total_frames}</div>
+                    <div><strong>Duration (s):</strong> {analysisResult.analysis_duration?.toFixed(1)}</div>
+                    <div>
+                      <strong>Recommendations:</strong>
+                      <ul className="list-disc ml-6 mt-1">
+                        {(analysisResult.recommendations || []).map((r: string, i: number) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
           {/* Target Metrics */}
           <Card className="sai-card">
